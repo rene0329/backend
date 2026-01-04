@@ -1,0 +1,39 @@
+name: Build and Push Backend Image
+
+on:
+  push:
+    branches: [ "main" ] # 只有推送到 main 分支才触发
+
+env:
+  REGISTRY: ghcr.io
+  # 镜像名会自动设为：ghcr.io/你的用户名/你的仓库名
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # 必须开启写入权限
+
+    steps:
+      # 1. 下载仓库代码
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. 登录 GitHub 容器镜像仓库 (GHCR)
+      - name: Log in to the Container registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. 构建并推送镜像
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .       # 在根目录下寻找 Dockerfile
+          push: true       # 构建完立即推送
+          # 给镜像打上 latest 标签，并自动把名字转为小写以免报错
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
